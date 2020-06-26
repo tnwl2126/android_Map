@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 
+import android.app.DownloadManager;
 import android.content.Context;
 import android.location.Address;
 import android.location.Geocoder;
@@ -24,9 +25,11 @@ import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.Overlay;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
+import java.util.Iterator;
+import java.util.Collection;
 import java.util.ListIterator;
 
 import static android.view.View.INVISIBLE;
@@ -46,8 +49,10 @@ public class MainActivity extends AppCompatActivity  implements OnMapReadyCallba
     private CameraUpdate cameraUpdate;
     private Context context = this;
     private InfoWindow infoWindow;
-    private  List<Address> list;
+    private List<Address> list;
+    private String str = "";
 
+    private URL url;
     private int num;
 
     private Geocoder geocoder;
@@ -80,17 +85,22 @@ public class MainActivity extends AppCompatActivity  implements OnMapReadyCallba
         infoWindow = new InfoWindow();
         geocoder = new Geocoder(this);
 
+        try {
+            url=new URL("https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
 
         infoWindow.setAdapter(new InfoWindow.DefaultTextAdapter(context) {
             @NonNull
             @Override
             public CharSequence getText(@NonNull InfoWindow infoWindow) {
-                return "위도 : "+latitude + "   경도 : " + longitude;  }
+                return  str; } //"위도 : "+latitude + "   경도 : " + longitude;
         });
 
         btn_group.setVisibility(INVISIBLE);
         this.listener();
-
     }
 
     public void listener() {
@@ -169,35 +179,30 @@ public class MainActivity extends AppCompatActivity  implements OnMapReadyCallba
         this.myMap = naverMap;
         myMap.setMapType(NaverMap.MapType.Basic);
 
-
-//        marker.setPosition(new LatLng(35.945192, 126.682179));
-//        marker.setMap(myMap);
-//        cameraUpdate = CameraUpdate.scrollTo(marker.getPosition());
-//        myMap.moveCamera(cameraUpdate);
-
         myMap.setOnMapClickListener((coord, point) -> {
             list = null;
-            String str = "";
-
+            str = "";
             marker.setPosition(new LatLng(point.latitude, point.longitude));
             latitude = point.latitude;
             longitude = point.longitude;
-/*
-            list = geocoder.getFromLocationName(latitude,longitude,10);
-            try {
-                list = geocoder.getFromLocationName(str,10);
-            } catch (IOException e) {
-                e.printStackTrace();
-                Log.e("test","입출력 오류 - 서버에서 주소 변환시 에러");
-            }
 
-            if (list != null) {
-                if (list.size()==0) {
-                    tv.setText("해당되는 주소 정보는 없습니다");
-                } else {
-                    tv.setText(list.get(0).toString());
+
+
+            try {
+                list = geocoder.getFromLocation(
+                        latitude, longitude, // 위도,경도
+                                10); // 얻어올 값의 개수
+                } catch (IOException e) {
+                e.printStackTrace();
+                Log.e("test", "입출력 오류 - 서버에서 주소변환시 에러발생");
                 }
-            }*/
+            if (list != null) {
+                if (list.size() == 0) {
+                    str = "해당되는 주소 정보는 없습니다.";
+                    } else {
+                    str += list.get(0).getAddressLine(0);
+                    }
+                }
 
             marker.setMap(myMap);
             cameraUpdate = CameraUpdate.scrollTo(marker.getPosition());
